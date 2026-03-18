@@ -1,0 +1,65 @@
+# Nome do workflow que aparecerá na aba "Actions" do GitHub
+# Esse nome identifica a pipeline principal da aplicação Next.js
+name: CI-CD NEXT/REACT
+
+# Define em quais eventos esse workflow será executado
+on:
+  # Executa quando houver push direto nas branches abaixo
+  push:
+    branches:
+      # Executa se houver push na branch principal
+      - main
+
+      # Executa se houver push na branch de desenvolvimento
+      - dev
+
+      # Executa se houver push em qualquer branch que comece com "feature/"
+      # Exemplo: feature/login, feature/teste-pipeline, feature/header
+      - 'feature/**'
+
+  # Executa também quando houver Pull Request apontando para as branches abaixo
+  pull_request:
+    branches:
+      # Roda se o PR estiver tentando entrar na main
+      - main
+
+      # Roda se o PR estiver tentando entrar na dev
+      - dev
+
+# Define os jobs da pipeline
+jobs:
+  # Primeiro job: verificar se a branch atual está sincronizada com a main
+  check-sync:
+    # Em vez de escrever toda a lógica aqui, esse job reutiliza um template
+    # que está no outro repositório chamado "pipeline-templates"
+    uses: mateus0507/pipeline-templates/.github/workflows/check-main-sync.yaml@main
+
+  # Segundo job: gerar o build da aplicação Next.js
+  build-next:
+    # "needs" significa que esse job só roda depois que o check-sync terminar com sucesso
+    needs: check-sync
+
+    # Reutiliza o workflow de build do repositório de templates
+    uses: mateus0507/pipeline-templates/.github/workflows/next-build.yaml@main
+
+    # Envia parâmetros para o template reutilizável
+    with:
+      # Define que o build será executado usando Node.js versão 20
+      node_version: "20"
+
+  # Terceiro job: criar a imagem Docker da aplicação
+  docker-build:
+    # Esse job só roda se o build da aplicação tiver dado certo
+    needs: build-next
+
+    # Reutiliza o workflow responsável por criar a imagem Docker
+    uses: mateus0507/pipeline-templates/.github/workflows/docker-build.yaml@main
+
+    # Envia os parâmetros que o template Docker precisa
+    with:
+      # Nome da imagem Docker que será criada
+      image_name: next-app
+
+      # Diretório de contexto do Docker build
+      # "." significa a raiz do repositório atual
+      context_dir: .
