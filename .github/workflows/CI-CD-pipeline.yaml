@@ -69,8 +69,8 @@ jobs:
 
   # Terceiro job: criar a imagem Docker da aplicação
   docker-build:
-    # Esse job só roda se o build da aplicação tiver dado certo
-    needs: [next-build, react-build]
+    needs: detect
+    if: needs.detect.outputs.type == 'react' || needs.detect.outputs.type == 'next'
 
     # Reutiliza o workflow responsável por criar a imagem Docker
     uses: mateus0507/pipeline-templates/.github/workflows/docker-build.yaml@main
