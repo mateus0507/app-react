@@ -7,7 +7,7 @@ FROM node:20-alpine AS base
 # Todos os comandos seguintes serão executados dentro dessa pasta
 WORKDIR /app
 
-ENV PORT=3000
+
 # Inicia um novo estágio chamado "deps", baseado na imagem "base"
 # Esse estágio será responsável apenas por instalar as dependências do projeto
 FROM base AS deps
@@ -48,7 +48,7 @@ FROM nginx:alpine AS runner
 # O Nginx irá servir o conteúdo da pasta /usr/share/nginx/html
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Expõe a porta 80, que é a porta padrão usada pelo Nginx dentro do container
+# Expõe a porta 3000, que é a porta padrão usada pelo Nginx dentro do container
 # Isso documenta que a aplicação responde internamente nessa porta
 EXPOSE 3000
 
