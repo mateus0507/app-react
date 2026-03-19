@@ -1,6 +1,6 @@
 # Nome do workflow que aparecerá na aba "Actions" do GitHub
 # Esse nome identifica a pipeline principal da aplicação Next.js
-name: CI-CD NEXT/REACT
+name: CI-CD Next/React App Pipeline
 
 # Define em quais eventos esse workflow será executado
 on:
@@ -28,6 +28,24 @@ on:
 
 # Define os jobs da pipeline
 jobs:
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      type: ${{ steps.detect.outputs.type }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect project type
+        id: detect
+        run: |
+          if [ -f "next.config.js" ]; then
+            echo "type=next" >> $GITHUB_OUTPUT
+          elif [ -f "vite.config.js" ]; then
+            echo "type=react" >> $GITHUB_OUTPUT
+          else
+            echo "type=unknown" >> $GITHUB_OUTPUT
+          fi
+
   # Primeiro job: verificar se a branch atual está sincronizada com a main
   check-sync:
     # Em vez de escrever toda a lógica aqui, esse job reutiliza um template
@@ -35,13 +53,15 @@ jobs:
     uses: mateus0507/pipeline-templates/.github/workflows/check-main-sync.yaml@main
 
   # Segundo job: gerar o build da aplicação Next.js
-  build-next:
-    # "needs" significa que esse job só roda depois que o check-sync terminar com sucesso
-    needs: check-sync
-
-    # Reutiliza o workflow de build do repositório de templates
+  next-build:
+    needs: detect
+    if: needs.detect.outputs.type == 'next'
     uses: mateus0507/pipeline-templates/.github/workflows/next-build.yaml@main
 
+  react-build:
+    needs: detect
+    if: needs.detect.outputs.type == 'react'
+    uses: mateus0507/pipeline-templates/.github/workflows/react-build.yaml@main
     # Envia parâmetros para o template reutilizável
     with:
       # Define que o build será executado usando Node.js versão 20
@@ -50,7 +70,7 @@ jobs:
   # Terceiro job: criar a imagem Docker da aplicação
   docker-build:
     # Esse job só roda se o build da aplicação tiver dado certo
-    needs: build-next
+    needs: [next-build, react-build]
 
     # Reutiliza o workflow responsável por criar a imagem Docker
     uses: mateus0507/pipeline-templates/.github/workflows/docker-build.yaml@main
