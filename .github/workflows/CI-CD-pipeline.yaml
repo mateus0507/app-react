@@ -43,7 +43,7 @@ jobs:
   # Segundo job: gerar o build da aplicação Next.js (executa apenas se STACK_TYPE = next)
   next-build:
     needs: check-sync
-    if: ${{ env.STACK_TYPE == 'next' }}
+    if: ${{ 'env.STACK_TYPE' == 'next' }}
     uses: mateus0507/pipeline-templates/.github/workflows/next-build.yaml@main
     with:
       node_version: "20"
@@ -51,7 +51,7 @@ jobs:
   # Terceiro job: gerar o build da aplicação React (executa apenas se STACK_TYPE = react)
   react-build:
     needs: check-sync
-    if: ${{ env.STACK_TYPE == 'react' }}
+    if: ${{ 'env.STACK_TYPE' == 'react' }}
     uses: mateus0507/pipeline-templates/.github/workflows/react-build.yaml@main
     # Envia parâmetros para o template reutilizável
     with:
