@@ -89,8 +89,4 @@ jobs:
     uses: mateus0507/pipeline-templates/.github/workflows/docker-build.yaml@main
     with:
       image_name: react-app
-<<<<<<< HEAD
       context_dir: .
-=======
-      context_dir: .
->>>>>>> 0df7ed70cadc3889747bc0f1b1686471707559e8
