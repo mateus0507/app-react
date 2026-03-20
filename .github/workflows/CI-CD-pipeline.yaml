@@ -1,5 +1,5 @@
 # Nome do workflow que aparecerá na aba "Actions" do GitHub
-# Esse nome identifica a pipeline principal da aplicação Next.js
+# Esse nome identifica a pipeline principal para aplicações Next.js ou React
 name: CI-CD Next/React App Pipeline
 
 # Define em quais eventos esse workflow será executado
@@ -26,25 +26,23 @@ on:
       # Roda se o PR estiver tentando entrar na dev
       - dev
 
+# Variável global que define o tipo do projeto (react ou next)
+env:
+  STACK_TYPE: react
+
 # Define os jobs da pipeline
 jobs:
-  detect:
+
+  # Job auxiliar: transforma a variável STACK_TYPE em output
+  # Isso permite usar o valor com segurança nas condições "if" dos outros jobs
+  define-stack:
     runs-on: ubuntu-latest
     outputs:
-      type: ${{ steps.detect.outputs.type }}
+      stack_type: ${{ steps.set-stack.outputs.stack_type }}
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Detect project type
-        id: detect
-        run: |
-          if [ -f "next.config.js" ]; then
-            echo "type=next" >> $GITHUB_OUTPUT
-          elif [ -f "vite.config.js" ]; then
-            echo "type=react" >> $GITHUB_OUTPUT
-          else
-            echo "type=unknown" >> $GITHUB_OUTPUT
-          fi
+      - name: Definir stack
+        id: set-stack
+        run: echo "stack_type=${{ env.STACK_TYPE }}" >> $GITHUB_OUTPUT #"Cria um output chamado stack_type com o valor de STACK_TYPE"
 
   # Primeiro job: verificar se a branch atual está sincronizada com a main
   check-sync:
@@ -52,37 +50,43 @@ jobs:
     # que está no outro repositório chamado "pipeline-templates"
     uses: mateus0507/pipeline-templates/.github/workflows/check-main-sync.yaml@main
 
-  # Segundo job: gerar o build da aplicação Next.js
+  # Segundo job: gerar o build da aplicação Next.js (executa apenas se STACK_TYPE = next)
   next-build:
-    needs: detect
-    if: needs.detect.outputs.type == 'next'
+    needs: [define-stack, check-sync]
+    if: ${{ needs.define-stack.outputs.stack_type == 'next' }}
     uses: mateus0507/pipeline-templates/.github/workflows/next-build.yaml@main
+    with:
+      node_version: "20"
 
+  # Terceiro job: gerar o build da aplicação React (executa apenas se STACK_TYPE = react)
   react-build:
-    needs: detect
-    if: needs.detect.outputs.type == 'react'
+    needs: [define-stack, check-sync]
+    if: ${{ needs.define-stack.outputs.stack_type == 'react' }}
     uses: mateus0507/pipeline-templates/.github/workflows/react-build.yaml@main
     # Envia parâmetros para o template reutilizável
     with:
       # Define que o build será executado usando Node.js versão 20
       node_version: "20"
 
-  # Terceiro job: criar a imagem Docker da aplicação
-  docker-build:
-    needs: detect
-    if: needs.detect.outputs.type == 'react' || needs.detect.outputs.type == 'next'
-
+  # Quarto job: criar a imagem Docker da aplicação Next.js (executa apenas se STACK_TYPE = next)
+  docker-build-next:
+    needs: [define-stack, next-build]
+    if: ${{ needs.define-stack.outputs.stack_type == 'next' }}
     # Reutiliza o workflow responsável por criar a imagem Docker
     uses: mateus0507/pipeline-templates/.github/workflows/docker-build.yaml@main
-
     # Envia os parâmetros que o template Docker precisa
     with:
       # Nome da imagem Docker que será criada
       image_name: next-app
-
       # Diretório de contexto do Docker build
       # "." significa a raiz do repositório atual
       context_dir: .
 
-      #subir o primeiro teste
-      #subindo o segundo teste
+  # Quinto job: criar a imagem Docker da aplicação React (executa apenas se STACK_TYPE = react)
+  docker-build-react:
+    needs: [define-stack, react-build]
+    if: ${{ needs.define-stack.outputs.stack_type == 'react' }}
+    uses: mateus0507/pipeline-templates/.github/workflows/docker-build.yaml@main
+    with:
+      image_name: react-app
+      context_dir: .
