@@ -28,14 +28,21 @@ on:
 
 # Variável global que define o tipo do projeto (react ou next)
 env:
-  STACK_TYPE: react
+  STACK_TYPE: next
 
 # Define os jobs da pipeline
 jobs:
 
+  # Primeiro job: verificar se a branch atual está sincronizada com a main
+  check-sync:
+    # Em vez de escrever toda a lógica aqui, esse job reutiliza um template
+    # que está no outro repositório chamado "pipeline-templates"
+    uses: mateus0507/pipeline-templates/.github/workflows/check-main-sync.yaml@main
   # Job auxiliar: transforma a variável STACK_TYPE em output
   # Isso permite usar o valor com segurança nas condições "if" dos outros jobs
+
   define-stack:
+    needs: [check-sync] # Garante que esse job só rode depois de check-sync
     runs-on: ubuntu-latest
     outputs:
       stack_type: ${{ steps.set-stack.outputs.stack_type }}
@@ -43,12 +50,6 @@ jobs:
       - name: Definir stack
         id: set-stack
         run: echo "stack_type=${{ env.STACK_TYPE }}" >> $GITHUB_OUTPUT #"Cria um output chamado stack_type com o valor de STACK_TYPE"
-
-  # Primeiro job: verificar se a branch atual está sincronizada com a main
-  check-sync:
-    # Em vez de escrever toda a lógica aqui, esse job reutiliza um template
-    # que está no outro repositório chamado "pipeline-templates"
-    uses: mateus0507/pipeline-templates/.github/workflows/check-main-sync.yaml@main
 
   # Segundo job: gerar o build da aplicação Next.js (executa apenas se STACK_TYPE = next)
   next-build:
@@ -90,3 +91,4 @@ jobs:
     with:
       image_name: react-app
       context_dir: .
+      #TESTE
