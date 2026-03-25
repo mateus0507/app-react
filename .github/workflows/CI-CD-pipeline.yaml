@@ -16,3 +16,4 @@ jobs:
     secrets: inherit
     with:
       STACK_TYPE: "react"
+      version: "20" 
