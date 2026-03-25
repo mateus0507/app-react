@@ -1,5 +1,4 @@
 name: CI-CD Next/React App Pipeline
-
 on:
   workflow_call:
   push:
@@ -7,12 +6,10 @@ on:
       - main
       - dev
       - 'feature/**'
-
   pull_request:
     branches:
       - main
       - dev
-
 jobs:
   chamar-templates:
     uses: mateus0507/pipeline-templates/.github/workflows/exec-templates.yaml@main
